@@ -8,7 +8,7 @@ import { TodosModule } from './todos/todos.module';
 import { join } from 'path';
 import { CustomersModule } from './customers/customers.module';
 import { Customers } from './customers/entity/customers.entity';
-
+import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 @Module({
   imports: [
     ConfigModule.forRoot(),

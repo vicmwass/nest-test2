@@ -24,7 +24,14 @@ export class CreateAccountsDto{
     @IsDefined()
     @IsString()
     account_number: string; 
+   
+}
+
+export class AccountQueuePayloadDto{
     @IsDefined()
     @IsNumber()
-    balance: number;
+    account_holder_id: number;
+    @IsDefined()
+    @IsString()
+    account_holder_name: string;  
 }

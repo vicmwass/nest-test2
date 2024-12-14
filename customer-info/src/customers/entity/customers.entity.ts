@@ -16,7 +16,9 @@ export class Customers{
     username: string;
     @Column()
     password: string;
-    @Column()
+    @Column({
+        default:""
+    })
     accountNumber: string;
     @Column({
         default: 0

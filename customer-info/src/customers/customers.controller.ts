@@ -7,9 +7,9 @@ import { CustomerDto } from "./dto/customer.dto";
 export class CustomersController{
     constructor(private readonly customersService: CustomersService){}
     @Get()
-    getAllCustomers(@Res() response: Response,){
+    async getAllCustomers(@Res() response: Response,){
         try{    
-            const customers = this.customersService.getCustomers();
+            const customers = await this.customersService.getCustomers();
             return response.status(HttpStatus.OK).json(customers);
         }catch(error){
             if (error instanceof HttpException) {
@@ -22,9 +22,9 @@ export class CustomersController{
         }
     }
     @Post()
-    addCustomer(@Res() response: Response,@Body() completeBody){
+    async addCustomer(@Res() response: Response,@Body() completeBody){
         try{
-            const customer = this.customersService.createCustomer(completeBody);
+            const customer = await this.customersService.createCustomer(completeBody);
             return response.status(HttpStatus.CREATED).json(customer);
         }catch(error){
             if (error instanceof HttpException) {

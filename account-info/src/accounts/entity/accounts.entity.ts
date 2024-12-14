@@ -20,6 +20,7 @@ export class Accounts{
     account_holder_name: string;
     @Column({
         nullable: false,
+        unique: true,
     })
     account_number: string;
 

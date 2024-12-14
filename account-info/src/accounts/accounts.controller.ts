@@ -1,7 +1,7 @@
 import { Controller, Get,Post,Res,Body,HttpException, HttpStatus,Param} from '@nestjs/common';
 import { AccountsService } from './accounts.service';
 import { Response } from 'express';
-import { AccountsDto } from './dto/accounts.dto';
+import { AccountsDto, CreateAccountsDto } from './dto/accounts.dto';
 import { SimpleTransactionDto, TransactionDto } from './dto/transaction.dto';
 import { TransactionsService } from './transaction.service';
 
@@ -31,7 +31,7 @@ export class AccountsController {
     }
 
     @Post()
-    async createAccount(@Res() response: Response,@Body() body:AccountsDto){
+    async createAccount(@Res() response: Response,@Body() body:CreateAccountsDto){
     try{
         const account= await this.accountsService.createAccounts(body)
         return response.status(HttpStatus.CREATED).json({message:'Account created successfully',data:account});
@@ -112,7 +112,7 @@ export class AccountsController {
         }
     }
 
-    @Post('make_transaction')
+    @Post('money_transfer')
     async transaction(@Res() response: Response, @Body() body:TransactionDto){
         try{
             await this.transactionsService.addTransaction(body)

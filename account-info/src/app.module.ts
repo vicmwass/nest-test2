@@ -9,6 +9,8 @@ import { AccountsModule } from './accounts/accounts.module';
 import { join } from 'path';
 import { Accounts } from './accounts/entity/accounts.entity';
 import { Transactions } from './accounts/entity/transaction.entity';
+import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
+
 
 @Module({
   imports: [

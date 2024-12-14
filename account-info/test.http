@@ -1,0 +1,45 @@
+GET http://localhost:3001/accounts/
+
+###
+GET http://localhost:3001/accounts?account_holder_id=12
+
+###
+GET http://localhost:3001/accounts?account_number=1100993344
+
+###
+POST http://localhost:3001/accounts
+Content-Type: application/json
+
+{
+	"account_holder_id":5,
+	"account_holder_name": "mwass",
+    "account_number":"1100993359"
+}
+
+###
+POST http://localhost:3001/accounts/deposit
+Content-Type: application/json
+
+{
+	"account_number":"1100915250",
+	"amount":1198
+}
+
+###
+POST http://localhost:3001/accounts/withdraw
+Content-Type: application/json
+
+{
+	"account_number":"1100915250",
+	"amount":1198
+}
+
+###
+POST http://localhost:3001/accounts/money_transfer
+Content-Type: application/json
+
+{
+	"credit_account_number":"1100993359",
+	"debit_account_number":"1100993349",
+	"amount":120
+}

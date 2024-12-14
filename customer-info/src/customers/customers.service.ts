@@ -2,7 +2,9 @@ import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Customers } from "./entity/customers.entity";
-import { CustomerDto } from "./dto/customer.dto";
+import { CustomerDto,CreateCustomerDto, UpdateAccNoPayloadDto } from "./dto/customer.dto";
+import { AmqpConnection } from '@golevelup/nestjs-rabbitmq'
+import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 
 
 @Injectable()
@@ -10,14 +12,68 @@ export class CustomersService{
     constructor(
         @InjectRepository(Customers)
         private customersRepository: Repository<Customers>,
+        private readonly amqpConnection: AmqpConnection
       ) {}
 
-    async createCustomer(data: CustomerDto){    
+      @RabbitSubscribe({ 
+        exchange: 'exchange1',
+         routingKey: 'message-customers.update-account',
+        queue: 'message-customers', })
+    async updateAccountNumberOnCreate({data}){
         try{
-            const todo=this.customersRepository.create(data);        
-            return await this.customersRepository.save(todo);
+            const customer=await this.customersRepository.findOne({where:{id:data.account_holder_id}});
+            if(customer){
+                customer.accountNumber=data.account_number;
+                await this.customersRepository.save(customer);
+            }
         }catch(err){
-            throw new HttpException("Couldn't create the customer,try again later", HttpStatus.INTERNAL_SERVER_ERROR);
+            console.log(err.message)
+        }
+
+    }
+
+    @RabbitSubscribe({ 
+        exchange: 'exchange1',
+         routingKey: 'message-customers.update-balance',
+        queue: 'message-customers', })
+    async updateAmountBalance({data}){
+        try{
+            const customer=await this.customersRepository.findOne({where:{id:data.account_holder_id}});
+            if(customer){
+                console.log(data)
+                if (data.isAddition){
+                    customer.balance+=data.amount;
+                }else{
+                    customer.balance-=data.amount;
+                }
+                await this.customersRepository.save(customer);
+            }
+        }catch(err){
+            console.log(err.message)
+        }
+
+    }
+
+    async createCustomer(data: CreateCustomerDto){    
+        try{
+            // console.log(data)
+            const customer=this.customersRepository.create(data);        
+            await this.customersRepository.save(customer);
+            try{
+                await this.amqpConnection.publish('exchange1',
+                    'message-accounts.create-account',
+                     { data: {
+                       account_holder_id:customer.id,
+                       account_number:customer.accountNumber,
+                       account_holder_name:customer.username
+                     }, });
+            }catch(err){
+                console.log(err.message)
+            }            
+            return customer;
+        }catch(err){
+            console.log(err.message)
+            throw new HttpException("Couldn't create the customer,try again later: "+(err.message), HttpStatus.INTERNAL_SERVER_ERROR);
         }
         
     }

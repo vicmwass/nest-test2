@@ -1,6 +1,7 @@
-import { IsDefined, IsNumber, IsString } from "class-validator";
+import { IsDefined, IsNumber, IsString,IsOptional } from "class-validator";
 
 export class CustomerDto{
+    @IsOptional()
     @IsNumber()
     id: number;
     @IsString()
@@ -13,6 +14,15 @@ export class CustomerDto{
     lastname: string;
     @IsString()
     email: string;
+}
+
+export class UpdateAccNoPayloadDto{
+    @IsDefined()
+    @IsString()
+    account_number: string;
+    @IsDefined()
+    @IsNumber()
+    account_holder_id: number;
 }
 
 export class CreateCustomerDto {

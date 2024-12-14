@@ -2,8 +2,10 @@ import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Accounts } from "./entity/accounts.entity";
-import { AccountsDto,CreateAccountsDto } from "./dto/accounts.dto";
+import { AccountQueuePayloadDto, AccountsDto,CreateAccountsDto } from "./dto/accounts.dto";
 import { SimpleTransactionDto } from "./dto/transaction.dto";
+import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
+import { AmqpConnection } from '@golevelup/nestjs-rabbitmq'
 
 
 
@@ -12,12 +14,46 @@ export class AccountsService{
     constructor(
         @InjectRepository(Accounts)
         private accountsRepository: Repository<Accounts>,
-
+        private readonly amqpConnection: AmqpConnection
       ) {}
+
+      @RabbitSubscribe({ 
+        exchange: 'exchange1',
+         routingKey: 'message-accounts.create-account',
+        queue: 'message-accounts', })
+    async createAccountFromQueue({data}) {
+        try{
+        const account:CreateAccountsDto={
+            account_holder_id:data.account_holder_id,
+            account_number:this.generateAccountNumber(),
+            account_holder_name:data.account_holder_name,        
+        }
+           await this.createAccounts(account);
+           try{
+            await this.amqpConnection.publish('exchange1',
+                'message-customers.update-account',
+                 { data: {
+                   account_holder_id:data.account_holder_id,
+                   account_number:account.account_number
+                 }, });
+           }catch(error){
+            console.log('could not send update customer to queue'+(error.message));
+           }
+          
+        }catch(error){
+           console.log('could not create account from queue'+(error.message));
+        }
+        
+    }
+    
+    generateAccountNumber(){
+        return '11009'+(Math.floor(Math.random() * 90000) + 10000);
+    }
+    
 
     async createAccounts(data: CreateAccountsDto){
         try{
-            const checkAccount=await this.getAccountByAccountNumber(data.account_number);
+            const checkAccount:AccountsDto=await this.accountsRepository.findOne({where:{account_number:data.account_number}});
             if(checkAccount){
                 throw new HttpException('Account number already exists', HttpStatus.BAD_REQUEST);
             }
@@ -27,7 +63,7 @@ export class AccountsService{
             if(error instanceof HttpException){
                 throw error;
             }else{
-                throw new HttpException('Problem creating account, try again later', HttpStatus.INTERNAL_SERVER_ERROR);;
+                throw new HttpException('Problem creating account, try again later' +(error.message), HttpStatus.INTERNAL_SERVER_ERROR);;
             }
         }
         
@@ -84,7 +120,22 @@ export class AccountsService{
             }
             account.balance-=amount;
         }
-            return await this.accountsRepository.save(account);
+            await this.accountsRepository.save(account);
+            try{
+                console.log('sending update customer balance to queue')
+                await this.amqpConnection.publish('exchange1',
+                    'message-customers.update-balance',
+                     { data: {
+                       account_holder_id:account.account_holder_id,
+                       account_number:account.account_number,
+                       amount,
+                       isAddition
+                     }, });
+            }catch(error){
+                console.log('could not send update customer balance to queue'+(error.message));
+            }
+            
+            return account
             
         }catch(error){
             if(error instanceof HttpException){
@@ -126,7 +177,21 @@ export class AccountsService{
                     throw new HttpException(`Insufficient balance in account ${account_number}`, HttpStatus.BAD_REQUEST);
                 }
                 account.balance-=amount;
-                return await this.accountsRepository.save(account);
+                await this.accountsRepository.save(account);
+                try{
+                    console.log('sending update customer balance to queue')
+                    await this.amqpConnection.publish('exchange1',
+                        'message-customers.update-balance',
+                         { data: {
+                           account_holder_id:account.account_holder_id,
+                           account_number:account.account_number,
+                           amount,
+                           isAddition:false
+                         }, });
+                }catch(error){
+                    console.log('could not send update customer balance to queue'+(error.message));
+                }
+                return account
             }catch(error){
                 if(error instanceof HttpException){
                     throw error;
@@ -147,7 +212,21 @@ export class AccountsService{
                     throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
                 }
                 account.balance+=amount;
-                return await this.accountsRepository.save(account);
+                await this.accountsRepository.save(account);
+                try{
+                    console.log('sending update customer balance to queue')
+                    await this.amqpConnection.publish('exchange1',
+                        'message-customers.update-balance',
+                         { data: {
+                           account_holder_id:account.account_holder_id,
+                           account_number:account.account_number,
+                           amount,
+                           isAddition:true
+                         }, });
+                }catch(error){
+                    console.log('could not send update customer balance to queue'+(error.message));
+                }
+                return account
             }catch(error){
                 if(error instanceof HttpException){
                     throw error;
